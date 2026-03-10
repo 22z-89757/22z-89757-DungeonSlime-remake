@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App1", "App1\App1.csproj", "{7F9BF22A-BECA-44E8-AB98-5201AEA4A7DD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ClassLibrary", "ClassLibrary\ClassLibrary.csproj", "{CA43C58C-792B-420B-BEDE-60BA59D356F0}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{7F9BF22A-BECA-44E8-AB98-5201AEA4A7DD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7F9BF22A-BECA-44E8-AB98-5201AEA4A7DD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7F9BF22A-BECA-44E8-AB98-5201AEA4A7DD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7F9BF22A-BECA-44E8-AB98-5201AEA4A7DD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CA43C58C-792B-420B-BEDE-60BA59D356F0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CA43C58C-792B-420B-BEDE-60BA59D356F0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CA43C58C-792B-420B-BEDE-60BA59D356F0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CA43C58C-792B-420B-BEDE-60BA59D356F0}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
