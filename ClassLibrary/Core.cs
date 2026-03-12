@@ -2,6 +2,8 @@ using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
+using Microsoft.Xna.Framework.Input;
+using ClassLibrary.Input;
 
 namespace ClassLibrary;
 
@@ -36,7 +38,15 @@ public class Core : Game   //使用了单例模式。提供一个全局通用的
     /// </summary>
     public static new ContentManager Content { get; private set; }
 
-    
+    /// <summary>
+    /// Gets a reference to the input management system.
+    /// </summary>
+    public static InputManager InputMgr { get; private set; }
+
+    /// <summary>
+    /// Gets or Sets a value that indicates if the game should exit when the esc key on the keyboard is pressed.
+    /// </summary>
+    public static bool ExitOnEscape { get; set; }
     
     
     /// <summary>
@@ -80,6 +90,9 @@ public class Core : Game   //使用了单例模式。提供一个全局通用的
 
         // Mouse is visible by default.
         IsMouseVisible = true;
+        
+        // Exit on escape is true by default
+        ExitOnEscape = true;
     }
 
     protected override void Initialize()
@@ -92,5 +105,21 @@ public class Core : Game   //使用了单例模式。提供一个全局通用的
 
         // Create the sprite batch instance.
         SpriteBatch = new SpriteBatch(GraphicsDevice); //括号里传入有效的GraphicsDevice因为SpriteBatch要通过其完成实际绘制
+        
+        // Create a new input manager.
+        InputMgr = new InputManager();
+    }
+    
+    protected override void Update(GameTime gameTime)
+    {
+        // Update the input manager.
+        InputMgr.Update(gameTime);
+
+        if (ExitOnEscape && InputMgr.Keyboard.IsKeyDown(Keys.Escape))
+        {
+            Exit();
+        }
+
+        base.Update(gameTime);
     }
 }
