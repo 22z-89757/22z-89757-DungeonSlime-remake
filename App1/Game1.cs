@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -10,61 +11,68 @@ namespace App1;
 
 public class Game1 : Core
 {
-    // Defines the slime animated sprite.
-    private AnimatedSprite _slime;
-
-    // Defines the bat animated sprite.
+    // 蛇头
+    private Slime _snakeHead;
+    
+    // 蛇身体节点列表
+    private List<Slime> _snakeBody;
+    
+    // 蝙蝠（食物）
     private AnimatedSprite _bat;
     
-    // Tracks the position of the slime
-    private Vector2 _slimePosition;
-    
-    // Speed multiplier when moving
-    private const float MOVEMENT_SPEED = 5.0f;
-    
-    // Tracks the position of the bat.
+    // 蝙蝠位置
     private Vector2 _batPosition;
-
-    // Tracks the velocity of the bat.
+    
+    // 蝙蝠速度
     private Vector2 _batVelocity;
-
     
+    // 移动速度
+    private const float MOVEMENT_SPEED = 3.0f;
     
-    public Game1() : base("awk's monogame", 1280, 720, false)
+    // 身体节点之间的距离（以帧数计算）
+    private const int BODY_DISTANCE_IN_FRAMES = 15;
+    
+    public Game1() : base("贪吃蛇大作战", 1280, 720, false)
     {
-        
+        _snakeBody = new List<Slime>();
     }
 
     protected override void Initialize()
-    
     {
-        // TODO: Add your initialization logic here
-
         base.Initialize();
         
-        // Set the initial position of the bat to be 10px
-        // to the right of the slime.
-        _batPosition = new Vector2(_slime.Width + 10, 0);
-
-        // Assign the initial random velocity to the bat.
+        // 设置蝙蝠初始位置
+        _batPosition = new Vector2(_snakeHead.Sprite.Width + 10, 0);
+        
+        // 分配随机速度给蝙蝠
         AssignRandomBatVelocity();
     }
 
     protected override void LoadContent()
     {
-        // TODO: use this.Content to load your game content here
+        // 创建纹理图集
+        TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/File.xml");
+
+        // 创建蛇头
+        AnimatedSprite headSprite = atlas.CreateAnimatedSprite("slime-animation");
+        headSprite.Scale = new Vector2(4.0f, 4.0f);
+        headSprite.Color = Color.Orange;
         
-        // Create the texture atlas from the XML configuration file
-        TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/File.xml");  //这种方法可以使精灵定义与游戏逻辑分开
-
-        // Create the slime animated sprite from the atlas.
-        _slime = atlas.CreateAnimatedSprite("slime-animation");
-        _slime.Scale = new Vector2(4.0f, 4.0f);
-
-        // Create the bat animated sprite from the atlas.
+        _snakeHead = new Slime(
+            E_SlimeType.Head, 
+            headSprite, 
+            new Vector2(640, 360) // 屏幕中心
+        );
+        
+        // 初始化时添加3个身体节点
+        for (int i = 0; i < 3; i++)
+        {
+            AddBodySegment(atlas);
+        }
+        
+        // 创建蝙蝠动画精灵
         _bat = atlas.CreateAnimatedSprite("bat-animation");
         _bat.Scale = new Vector2(4.0f, 4.0f);
-        
         
         base.LoadContent();
     }
@@ -75,78 +83,227 @@ public class Game1 : Core
             Keyboard.GetState().IsKeyDown(Keys.Escape))
             Exit();
 
-        // TODO: Add your update logic here
+        // 处理输入
+        HandleInput();
         
-        // Update the slime animated sprite.
-        _slime.Update(gameTime);
-
-        // Update the bat animated sprite.
+        // 更新蛇头位置
+        _snakeHead.UpdateHead(gameTime);
+        
+        // 更新蛇身体节点位置（基于历史路径）
+        UpdateSnakeBody();
+        
+        // 更新所有动画
+        _snakeHead.Update(gameTime);
+        foreach (var bodySegment in _snakeBody)
+        {
+            bodySegment.Update(gameTime);
+        }
         _bat.Update(gameTime);
         
-        // Check for keyboard input and handle it.
-        CheckKeyboardInput();
+        // 边界检测
+        HandleScreenBounds();
         
-        // Check for gamepad input and handle it.
-        CheckGamePadInput();
+        // 更新蝙蝠
+        UpdateBat();
         
+        // 碰撞检测
+        CheckCollisions();
         
-        // Create a bounding rectangle for the screen.
-        // 为屏幕创建一个边界矩形
+        base.Update(gameTime);
+    }
+    
+    /// <summary>
+    /// 处理输入，更新蛇头速度
+    /// </summary>
+    private void HandleInput()
+    {
+        Vector2 direction = Vector2.Zero;
+        float speed = MOVEMENT_SPEED;
+        bool hasInput = false;
+        
+        // 键盘输入
+        if (InputMgr.Keyboard.IsKeyDown(Keys.Space))
+        {
+            speed *= 1.5f;
+        }
+        
+        if (InputMgr.Keyboard.IsKeyDown(Keys.W) || InputMgr.Keyboard.IsKeyDown(Keys.Up))
+        {
+            direction.Y -= 1;
+            hasInput = true;
+        }
+        if (InputMgr.Keyboard.IsKeyDown(Keys.S) || InputMgr.Keyboard.IsKeyDown(Keys.Down))
+        {
+            direction.Y += 1;
+            hasInput = true;
+        }
+        if (InputMgr.Keyboard.IsKeyDown(Keys.A) || InputMgr.Keyboard.IsKeyDown(Keys.Left))
+        {
+            direction.X -= 1;
+            hasInput = true;
+        }
+        if (InputMgr.Keyboard.IsKeyDown(Keys.D) || InputMgr.Keyboard.IsKeyDown(Keys.Right))
+        {
+            direction.X += 1;
+            hasInput = true;
+        }
+        
+        // 手柄输入
+        GamePadInfo gamePadOne = InputMgr.GamePads[(int)PlayerIndex.One];
+        if (gamePadOne.IsButtonDown(Buttons.A))
+        {
+            speed *= 1.5f;
+            gamePadOne.SetVibration(1.0f, TimeSpan.FromSeconds(1));
+        }
+        else
+        {
+            gamePadOne.StopVibration();
+        }
+        
+        // 手柄摇杆输入（带死区和归一化）
+        const float DEADZONE = 0.2f;
+        Vector2 thumbStick = gamePadOne.LeftThumbStick;
+        if (Math.Abs(thumbStick.X) > DEADZONE || Math.Abs(thumbStick.Y) > DEADZONE)
+        {
+            direction.X = thumbStick.X;
+            direction.Y = -thumbStick.Y;
+            hasInput = true;
+        }
+        else
+        {
+            // 手柄方向键输入
+            if (gamePadOne.IsButtonDown(Buttons.DPadUp))
+            {
+                direction.Y -= 1;
+                hasInput = true;
+            }
+            if (gamePadOne.IsButtonDown(Buttons.DPadDown))
+            {
+                direction.Y += 1;
+                hasInput = true;
+            }
+            if (gamePadOne.IsButtonDown(Buttons.DPadLeft))
+            {
+                direction.X -= 1;
+                hasInput = true;
+            }
+            if (gamePadOne.IsButtonDown(Buttons.DPadRight))
+            {
+                direction.X += 1;
+                hasInput = true;
+            }
+        }
+        
+        // 更新方向和速度
+        if (hasInput && direction != Vector2.Zero)
+        {
+            // 有输入：归一化方向并更新LastDirection
+            direction.Normalize();
+            _snakeHead.LastDirection = direction;
+        }
+        
+        // 始终使用LastDirection移动（持续移动）
+        _snakeHead.Velocity = _snakeHead.LastDirection * speed;
+    }
+    
+    /// <summary>
+    /// 更新蛇身体节点位置（历史路径回溯法）
+    /// </summary>
+    private void UpdateSnakeBody()
+    {
+        for (int i = 0; i < _snakeBody.Count; i++)
+        {
+            // 第 i 个身体节点的位置 = 蛇头在 (i+1) * BODY_DISTANCE_IN_FRAMES 帧之前的位置
+            int framesAgo = (i + 1) * BODY_DISTANCE_IN_FRAMES;
+            _snakeBody[i].Position = _snakeHead.GetPositionAtFrame(framesAgo);
+        }
+    }
+    
+    /// <summary>
+    /// 添加一个身体节点
+    /// </summary>
+    private void AddBodySegment(TextureAtlas atlas)
+    {
+        AnimatedSprite bodySprite = atlas.CreateAnimatedSprite("slime-animation");
+        bodySprite.Scale = new Vector2(4.0f, 4.0f);
+        
+        // 为每个身体节点设置不同的颜色
+        Color[] colors = { Color.LightGreen, Color.LightBlue, Color.LightPink, 
+                          Color.LightYellow, Color.LightCoral, Color.LightCyan };
+        bodySprite.Color = colors[_snakeBody.Count % colors.Length];
+        
+        Slime bodySegment = new Slime(
+            E_SlimeType.Body,
+            bodySprite,
+            _snakeHead.Position // 初始位置设为蛇头位置
+        );
+        
+        _snakeBody.Add(bodySegment);
+    }
+    
+    /// <summary>
+    /// 处理屏幕边界
+    /// </summary>
+    private void HandleScreenBounds()
+    {
         Rectangle screenBounds = new Rectangle(
-            0,
-            0,
+            0, 0,
             GraphicsDevice.PresentationParameters.BackBufferWidth,
             GraphicsDevice.PresentationParameters.BackBufferHeight
         );
-
-        // Creating a bounding circle for the slime
-        // 为史莱姆创建一个边界圆
-        Circle slimeBounds = new Circle(
-            (int)(_slimePosition.X + (_slime.Width * 0.5f)),  //_slimePosition是左上角坐标
-            (int)(_slimePosition.Y + (_slime.Height * 0.5f)),
-            (int)(_slime.Width * 0.3f)
-        );
-
-        /* Use distance based checks to determine if the slime is within the
-           bounds of the game screen, and if it is outside that screen edge,
-           move it back inside. */ 
-        // 通过检查距离来确定史莱姆是否在游戏屏幕的边界内，如果超出了屏幕边缘，就将其移回内部。
         
-        if (slimeBounds.Left < screenBounds.Left)
+        Circle headBounds = new Circle(
+            (int)(_snakeHead.Position.X + (_snakeHead.Sprite.Width * 0.5f)),
+            (int)(_snakeHead.Position.Y + (_snakeHead.Sprite.Height * 0.5f)),
+            (int)(_snakeHead.Sprite.Width * 0.3f)
+        );
+        
+        // 边界限制
+        Vector2 newPosition = _snakeHead.Position;
+        
+        if (headBounds.Left < screenBounds.Left)
         {
-            _slimePosition.X = screenBounds.Left;
+            newPosition.X = screenBounds.Left;
         }
-        else if (slimeBounds.Right > screenBounds.Right)
+        else if (headBounds.Right > screenBounds.Right)
         {
-            _slimePosition.X = screenBounds.Right - _slime.Width;
+            newPosition.X = screenBounds.Right - _snakeHead.Sprite.Width;
         }
-
-        if (slimeBounds.Top < screenBounds.Top)
+        
+        if (headBounds.Top < screenBounds.Top)
         {
-            _slimePosition.Y = screenBounds.Top;
+            newPosition.Y = screenBounds.Top;
         }
-        else if (slimeBounds.Bottom > screenBounds.Bottom)
+        else if (headBounds.Bottom > screenBounds.Bottom)
         {
-            _slimePosition.Y = screenBounds.Bottom - _slime.Height;
+            newPosition.Y = screenBounds.Bottom - _snakeHead.Sprite.Height;
         }
-
-        // Calculate the new position of the bat based on the velocity.
-        // 通过当前帧的速度计算下一帧bat的位置
+        
+        _snakeHead.Position = newPosition;
+    }
+    
+    /// <summary>
+    /// 更新蝙蝠位置
+    /// </summary>
+    private void UpdateBat()
+    {
+        Rectangle screenBounds = new Rectangle(
+            0, 0,
+            GraphicsDevice.PresentationParameters.BackBufferWidth,
+            GraphicsDevice.PresentationParameters.BackBufferHeight
+        );
+        
         Vector2 newBatPosition = _batPosition + _batVelocity;
-
-        // Create a bounding circle for the bat.
+        
         Circle batBounds = new Circle(
             (int)(newBatPosition.X + (_bat.Width * 0.5f)),
             (int)(newBatPosition.Y + (_bat.Height * 0.5f)),
             (int)(_bat.Width * 0.5f)
         );
-
+        
         Vector2 normal = Vector2.Zero;
-
-        // Use distance based checks to determine if the bat is within the
-        // bounds of the game screen, and if it is outside that screen edge,
-        // reflect it about the screen edge normal.
-        // bat碰到墙反弹
+        
+        // 蝙蝠碰到墙壁反弹
         if (batBounds.Left < screenBounds.Left)
         {
             normal.X = Vector2.UnitX.X;
@@ -157,7 +314,7 @@ public class Game1 : Core
             normal.X = -Vector2.UnitX.X;
             newBatPosition.X = screenBounds.Right - _bat.Width;
         }
-
+        
         if (batBounds.Top < screenBounds.Top)
         {
             normal.Y = Vector2.UnitY.Y;
@@ -168,165 +325,84 @@ public class Game1 : Core
             normal.Y = -Vector2.UnitY.Y;
             newBatPosition.Y = screenBounds.Bottom - _bat.Height;
         }
-
-        // If the normal is anything but Vector2.Zero, this means the bat had
-        // moved outside the screen edge so we should reflect it about the
-        // normal.
+        
         if (normal != Vector2.Zero)
         {
             normal.Normalize();
             _batVelocity = Vector2.Reflect(_batVelocity, normal);
         }
-
+        
         _batPosition = newBatPosition;
-
-        if (slimeBounds.Intersects(batBounds)) //slime与bat碰撞
+    }
+    
+    /// <summary>
+    /// 检测碰撞
+    /// </summary>
+    private void CheckCollisions()
+    {
+        Circle headBounds = new Circle(
+            (int)(_snakeHead.Position.X + (_snakeHead.Sprite.Width * 0.5f)),
+            (int)(_snakeHead.Position.Y + (_snakeHead.Sprite.Height * 0.5f)),
+            (int)(_snakeHead.Sprite.Width * 0.3f)
+        );
+        
+        Circle batBounds = new Circle(
+            (int)(_batPosition.X + (_bat.Width * 0.5f)),
+            (int)(_batPosition.Y + (_bat.Height * 0.5f)),
+            (int)(_bat.Width * 0.5f)
+        );
+        
+        // 蛇头吃到蝙蝠
+        if (headBounds.Intersects(batBounds))
         {
-            // Divide the width  and height of the screen into equal columns and
-            // rows based on the width and height of the bat.
-            // 将屏幕分块
+            // 添加一个身体节点
+            TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/File.xml");
+            AddBodySegment(atlas);
+            
+            // 重新定位蝙蝠
             int totalColumns = GraphicsDevice.PresentationParameters.BackBufferWidth / (int)_bat.Width;
             int totalRows = GraphicsDevice.PresentationParameters.BackBufferHeight / (int)_bat.Height;
             
-            //将bat生成在一个新的格子里
-            // Choose a random row and column based on the total number of each
             int column = Random.Shared.Next(0, totalColumns);
             int row = Random.Shared.Next(0, totalRows);
-
-            // Change the bat position by setting the x and y values equal to
-            // the column and row multiplied by the width and height.
+            
             _batPosition = new Vector2(column * _bat.Width, row * _bat.Height);
-
-            // Assign a new random velocity to the bat
+            
+            // 分配新的随机速度
             AssignRandomBatVelocity();
         }
-
-        base.Update(gameTime);
     }
     
+    /// <summary>
+    /// 为蝙蝠分配随机速度
+    /// </summary>
     private void AssignRandomBatVelocity()
     {
-        // Generate a random angle.
         float angle = (float)(Random.Shared.NextDouble() * Math.PI * 2);
-
-        // Convert angle to a direction vector.
         float x = (float)Math.Cos(angle);
         float y = (float)Math.Sin(angle);
         Vector2 direction = new Vector2(x, y);
-
-        // Multiply the direction vector by the movement speed.
         _batVelocity = direction * MOVEMENT_SPEED;
     }
-    
-    
-    
-    private void CheckKeyboardInput()
-    {
 
-        // If the space key is held down, the movement speed increases by 1.5
-        float speed = MOVEMENT_SPEED;
-        if (InputMgr.Keyboard.IsKeyDown(Keys.Space))
-        {
-            speed *= 1.5f;
-        }
-
-        // If the W or Up keys are down, move the slime up on the screen.
-        if (InputMgr.Keyboard.IsKeyDown(Keys.W) || InputMgr.Keyboard.IsKeyDown(Keys.Up))
-        {
-            _slimePosition.Y -= speed;
-        }
-
-        // if the S or Down keys are down, move the slime down on the screen.
-        if (InputMgr.Keyboard.IsKeyDown(Keys.S) || InputMgr.Keyboard.IsKeyDown(Keys.Down))
-        {
-            _slimePosition.Y += speed;
-        }
-
-        // If the A or Left keys are down, move the slime left on the screen.
-        if (InputMgr.Keyboard.IsKeyDown(Keys.A) || InputMgr.Keyboard.IsKeyDown(Keys.Left))
-        {
-            _slimePosition.X -= speed;
-        }
-
-        // If the D or Right keys are down, move the slime right on the screen.
-        if (InputMgr.Keyboard.IsKeyDown(Keys.D) || InputMgr.Keyboard.IsKeyDown(Keys.Right))
-        {
-            _slimePosition.X += speed;
-        }
-    }
-    
-    private void CheckGamePadInput()
-    {
-        GamePadInfo gamePadOne = InputMgr.GamePads[(int)PlayerIndex.One];
-
-        // If the A button is held down, the movement speed increases by 1.5
-        // and the gamepad vibrates as feedback to the player.
-        float speed = MOVEMENT_SPEED;
-        if (gamePadOne.IsButtonDown(Buttons.A))
-        {
-            speed *= 1.5f;
-            gamePadOne.SetVibration(1.0f, TimeSpan.FromSeconds(1));
-        }
-        else
-        {
-            gamePadOne.StopVibration();
-        }
-
-        // Check thumbstick first since it has priority over which gamepad input
-        // is movement.  It has priority since the thumbstick values provide a
-        // more granular analog value that can be used for movement.
-        if (gamePadOne.LeftThumbStick != Vector2.Zero)
-        {
-            _slimePosition.X += gamePadOne.LeftThumbStick.X * speed;
-            _slimePosition.Y -= gamePadOne.LeftThumbStick.Y * speed;
-        }
-        else
-        {
-            // If DPadUp is down, move the slime up on the screen.
-            if (gamePadOne.IsButtonDown(Buttons.DPadUp))
-            {
-                _slimePosition.Y -= speed;
-            }
-
-            // If DPadDown is down, move the slime down on the screen.
-            if (gamePadOne.IsButtonDown(Buttons.DPadDown))
-            {
-                _slimePosition.Y += speed;
-            }
-
-            // If DPapLeft is down, move the slime left on the screen.
-            if (gamePadOne.IsButtonDown(Buttons.DPadLeft))
-            {
-                _slimePosition.X -= speed;
-            }
-
-            // If DPadRight is down, move the slime right on the screen.
-            if (gamePadOne.IsButtonDown(Buttons.DPadRight))
-            {
-                _slimePosition.X += speed;
-            }
-        }
-    }
-    
-    
-    
-    //all rendering should be done inside the Draw method. The Draw method's responsibility is to render the game state that was calculated in Update;
-    //it should not contain any game logic or complex calculations.
-    protected override void Draw(GameTime gameTime)  //Gametime类型参数可以提供delta时间(上一帧执行的时间)
+    protected override void Draw(GameTime gameTime)
     {
         GraphicsDevice.Clear(Color.CornflowerBlue);
-        // TODO: Add your drawing code here
 
         SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
-        // Draw the slime sprite.
-        _slime.Draw(SpriteBatch, _slimePosition);
-
+        // 先绘制身体（从后往前，这样蛇头在最上层）
+        for (int i = _snakeBody.Count - 1; i >= 0; i--)
+        {
+            _snakeBody[i].Draw(SpriteBatch);
+        }
         
-        // Draw the bat sprite.
+        // 绘制蛇头
+        _snakeHead.Draw(SpriteBatch);
+        
+        // 绘制蝙蝠
         _bat.Draw(SpriteBatch, _batPosition);
 
-        // Always end the sprite batch when finished.
         SpriteBatch.End();
         
         base.Draw(gameTime);

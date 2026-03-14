@@ -9,7 +9,7 @@
         <Region name="bat-3" x="40" y="0" width="20" height="20" />
     </Regions>
     <Animations>
-        <Animation name="slime-animation" delay="200">
+        <Animation name="slime-animation" delay="400">
             <Frame region="slime-1" />
             <Frame region="slime-2" />
         </Animation>
