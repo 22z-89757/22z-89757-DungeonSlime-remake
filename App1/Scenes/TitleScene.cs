@@ -1,8 +1,11 @@
+using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using ClassLibrary;
 using ClassLibrary.Scenes;
+using ClassLibrary.Graphic;
+using System.Collections.Generic;
 
 namespace App1.Scenes;
 
@@ -36,6 +39,12 @@ public class TitleScene : Scene
     // The origin to set for the press enter text when drawing it.
     private Vector2 _pressEnterOrigin;
     
+    // Title界面的slime列表
+    private List<Slime> _titleSlimes;
+    
+    // 移动速度
+    private const float MOVEMENT_SPEED = 3.0f;
+    
     
     
     public override void LoadContent()
@@ -58,6 +67,10 @@ public class TitleScene : Scene
         // can close the game by pressing the escape key.
         Core.ExitOnEscape = true;
 
+        // 初始化title界面的slime
+        _titleSlimes = new List<Slime>();
+        InitializeTitleSlimes();
+
         // Set the position and origin for the Dungeon text.
         Vector2 size = _font5x.MeasureString(DUNGEON_TEXT);
         _dungeonTextPos = new Vector2(640, 100);
@@ -74,13 +87,143 @@ public class TitleScene : Scene
         _pressEnterOrigin = size * 0.5f;
     }
     
+    /// <summary>
+    /// 初始化title界面的8只slime
+    /// </summary>
+    private void InitializeTitleSlimes()
+    {
+        // 创建纹理图集
+        TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/File.xml");
+
+        for (int i = 0; i < 8; i++)
+        {
+            // 创建slime精灵
+            AnimatedSprite slimeSprite = atlas.CreateAnimatedSprite("slime-animation");
+            slimeSprite.Scale = new Vector2(4.0f, 4.0f);
+            
+            // 设置随机颜色
+            slimeSprite.Color = GetRandomColor();
+            
+            // 随机位置
+            int totalColumns = Core.GraphicsDevice.PresentationParameters.BackBufferWidth / (int)slimeSprite.Width;
+            int totalRows = Core.GraphicsDevice.PresentationParameters.BackBufferHeight / (int)slimeSprite.Height;
+            
+            int column = Random.Shared.Next(0, totalColumns);
+            int row = Random.Shared.Next(0, totalRows);
+            
+            Vector2 position = new Vector2(column * slimeSprite.Width, row * slimeSprite.Height);
+            
+            // 随机左右移动方向
+            float direction = Random.Shared.Next(0, 2) == 0 ? -1 : 1;
+            Vector2 velocity = new Vector2(direction * MOVEMENT_SPEED, 0);
+            
+            // 创建slime对象
+            Slime slime = new Slime(E_SlimeType.Head, slimeSprite, position)
+            {
+                Velocity = velocity,
+                LastDirection = velocity
+            };
+            
+            _titleSlimes.Add(slime);
+        }
+    }
+    
+    /// <summary>
+    /// 获取随机颜色
+    /// </summary>
+    private Color GetRandomColor()
+    {
+        Color[] colors = {
+            Color.Red, Color.Blue, Color.Green, Color.Yellow, Color.Purple,
+            Color.Orange, Color.Pink, Color.Cyan, Color.Magenta, Color.Lime,
+            Color.White, Color.Gray, Color.Brown, Color.Violet, Color.Turquoise
+        };
+        
+        return colors[Random.Shared.Next(colors.Length)];
+    }
+    
     public override void Update(GameTime gameTime)
     {
+        // 更新title界面的slime
+        UpdateTitleSlimes(gameTime);
+        
         // If the user presses enter, switch to the game scene.
-        if (Core.InputMgr.Keyboard.WasKeyJustPressed(Keys.Enter))
+        if (Core.InputMgr.Keyboard.WasKeyJustPressed(Keys.Enter) || Core.InputMgr.GamePads[0].WasButtonJustPressed(Buttons.A))
         {
             Core.ChangeScene(new GameScene());
         }
+    }
+    
+    /// <summary>
+    /// 更新title界面的slime
+    /// </summary>
+    private void UpdateTitleSlimes(GameTime gameTime)
+    {
+        Rectangle screenBounds = new Rectangle(
+            0, 0,
+            Core.GraphicsDevice.PresentationParameters.BackBufferWidth,
+            Core.GraphicsDevice.PresentationParameters.BackBufferHeight
+        );
+        
+        // 更新所有slime的位置和动画
+        for (int i = _titleSlimes.Count - 1; i >= 0; i--)
+        {
+            Slime slime = _titleSlimes[i];
+            
+            // 更新位置
+            slime.Position += slime.Velocity;
+            
+            // 更新动画
+            slime.Update(gameTime);
+            
+            // 检查是否完全移出屏幕
+            if (slime.IsOffScreen(screenBounds))
+            {
+                // 删除完全移出屏幕的slime
+                _titleSlimes.RemoveAt(i);
+                
+                // 生成新的slime
+                SpawnNewSlime();
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 生成新的slime
+    /// </summary>
+    private void SpawnNewSlime()
+    {
+        // 创建纹理图集
+        TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/File.xml");
+
+        // 创建slime精灵
+        AnimatedSprite slimeSprite = atlas.CreateAnimatedSprite("slime-animation");
+        slimeSprite.Scale = new Vector2(4.0f, 4.0f);
+        
+        // 设置随机颜色
+        slimeSprite.Color = GetRandomColor();
+        
+        // 随机位置
+        int totalColumns = Core.GraphicsDevice.PresentationParameters.BackBufferWidth / (int)slimeSprite.Width;
+        int totalRows = Core.GraphicsDevice.PresentationParameters.BackBufferHeight / (int)slimeSprite.Height;
+        
+        int column = Random.Shared.Next(0, totalColumns);
+        int row = Random.Shared.Next(0, totalRows);
+        
+        Vector2 position = new Vector2(column * slimeSprite.Width, row * slimeSprite.Height);
+        
+        // 随机左右移动方向
+        float direction = Random.Shared.Next(0, 2) == 0 ? -1 : 1;
+        Vector2 velocity = new Vector2(direction * MOVEMENT_SPEED, 0);
+        
+        // 创建slime对象
+        Slime slime = new Slime(E_SlimeType.Head, slimeSprite, position)
+        {
+            Velocity = velocity,
+            LastDirection = velocity
+        };
+        
+        _titleSlimes.Add(slime);
     }
     
     public override void Draw(GameTime gameTime)
@@ -89,6 +232,12 @@ public class TitleScene : Scene
 
         // Begin the sprite batch to prepare for rendering.
         Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+
+        // 绘制title界面的slime
+        foreach (Slime slime in _titleSlimes)
+        {
+            slime.Draw(Core.SpriteBatch);
+        }
 
         // The color to use for the drop shadow text.
         Color dropShadowColor = Color.Black * 0.5f;

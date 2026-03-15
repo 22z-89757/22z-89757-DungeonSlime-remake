@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using ClassLibrary;
 using Microsoft.Xna.Framework;
 using ClassLibrary.Graphic;
 
@@ -23,6 +25,14 @@ public class Slime
     public Vector2 LastDirection { get; set; }
     
     public AnimatedSprite Sprite { get; set; }
+    
+    /// <summary>
+    /// 随机颜色数组
+    /// </summary>
+    private static readonly Color[] RandomColors = {
+        Color.Red, Color.Blue, Color.Green, Color.Yellow, Color.Purple,
+        Color.Orange, Color.Pink, Color.Cyan, Color.Magenta, Color.Lime
+    };
     
     /// <summary>
     /// 历史位置队列，用于身体节点跟随
@@ -94,6 +104,40 @@ public class Slime
     }
     
     /// <summary>
+    /// 检查与身体的碰撞
+    /// </summary>
+    /// <param name="bodySegments">身体节点列表</param>
+    /// <returns>是否发生碰撞</returns>
+    public bool CheckBodyCollision(List<Slime> bodySegments)
+    {
+        // 蛇头的碰撞体积（比实际移动范围稍小）
+        Circle headBounds = new Circle(
+            (int)(Position.X + (Sprite.Width * 0.5f)),
+            (int)(Position.Y + (Sprite.Height * 0.5f)),
+            (int)(Sprite.Width * 0.25f) // 比移动范围稍小
+        );
+        
+        // 检查与每个身体节点的碰撞
+        foreach (var bodySegment in bodySegments)
+        {
+            // 身体节点的碰撞体积
+            Circle bodyBounds = new Circle(
+                (int)(bodySegment.Position.X + (bodySegment.Sprite.Width * 0.5f)),
+                (int)(bodySegment.Position.Y + (bodySegment.Sprite.Height * 0.5f)),
+                (int)(bodySegment.Sprite.Width * 0.01f)
+            );
+            
+            // 如果发生碰撞
+            if (headBounds.Intersects(bodyBounds))
+            {
+                return true;
+            }
+        }
+        
+        return false;
+    }
+    
+    /// <summary>
     /// 更新蛇头位置（基于速度）
     /// </summary>
     public void UpdateHead(GameTime gameTime)
@@ -119,5 +163,40 @@ public class Slime
     public void Draw(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
     {
         Sprite?.Draw(spriteBatch, Position);
+    }
+    
+    /// <summary>
+    /// 设置随机颜色
+    /// </summary>
+    public void SetRandomColor()
+    {
+        if (Sprite != null)
+        {
+            Sprite.Color = RandomColors[Random.Shared.Next(RandomColors.Length)];
+        }
+    }
+    
+    /// <summary>
+    /// 检查slime是否完全移出屏幕
+    /// </summary>
+    /// <param name="screenBounds">屏幕边界</param>
+    /// <returns>是否完全移出屏幕</returns>
+    public bool IsOffScreen(Rectangle screenBounds)
+    {
+        if (Sprite == null) return false;
+        
+        // 计算slime的边界
+        Rectangle slimeBounds = new Rectangle(
+            (int)Position.X,
+            (int)Position.Y,
+            (int)Sprite.Width,
+            (int)Sprite.Height
+        );
+        
+        // 检查是否完全移出屏幕
+        return slimeBounds.Right < screenBounds.Left ||
+               slimeBounds.Left > screenBounds.Right ||
+               slimeBounds.Bottom < screenBounds.Top ||
+               slimeBounds.Top > screenBounds.Bottom;
     }
 }
