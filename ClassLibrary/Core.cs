@@ -3,7 +3,9 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using ClassLibrary.Audio;
 using ClassLibrary.Input;
+using ClassLibrary.Scenes;
 
 namespace ClassLibrary;
 
@@ -15,7 +17,12 @@ public class Core : Game   //使用了单例模式。提供一个全局通用的
     /// Gets a reference to the Core instance.
     /// </summary>
     public static Core Instance => s_instance;
+    
+    // The scene that is currently active.
+    private static Scene s_activeScene;
 
+    // The next scene to switch to, if there is one.
+    private static Scene s_nextScene;
     
     //这里通过static关键字暴露了MomoGame最常用的四个工具,使得外部调用更方便
     /// <summary>
@@ -47,6 +54,11 @@ public class Core : Game   //使用了单例模式。提供一个全局通用的
     /// Gets or Sets a value that indicates if the game should exit when the esc key on the keyboard is pressed.
     /// </summary>
     public static bool ExitOnEscape { get; set; }
+    
+    /// <summary>
+    /// Gets a reference to the audio control system.
+    /// </summary>
+    public static AudioController Audio { get; private set; }
     
     
     /// <summary>
@@ -108,18 +120,93 @@ public class Core : Game   //使用了单例模式。提供一个全局通用的
         
         // Create a new input manager.
         InputMgr = new InputManager();
+        
+        // Create a new audio controller.
+        Audio = new AudioController();
+    }
+    
+    protected override void UnloadContent()
+    {
+        // Dispose of the audio controller.
+        Audio.Dispose();
+
+        base.UnloadContent();
     }
     
     protected override void Update(GameTime gameTime)
     {
         // Update the input manager.
         InputMgr.Update(gameTime);
+        
+        // Update the audio controller.
+        Audio.Update();
 
         if (ExitOnEscape && InputMgr.Keyboard.IsKeyDown(Keys.Escape))
         {
             Exit();
         }
+        
+        // if there is a next scene waiting to be switch to, then transition
+        // to that scene.
+        if (s_nextScene != null)
+        {
+            TransitionScene();
+        }
+
+        // If there is an active scene, update it.
+        if (s_activeScene != null)
+        {
+            s_activeScene.Update(gameTime);
+        }
 
         base.Update(gameTime);
     }
+    
+    protected override void Draw(GameTime gameTime)
+    {
+        // If there is an active scene, draw it.
+        if (s_activeScene != null)
+        {
+            s_activeScene.Draw(gameTime);
+        }
+
+        base.Draw(gameTime);
+    }
+    
+    public static void ChangeScene(Scene next)
+    {
+        // Only set the next scene value if it is not the same
+        // instance as the currently active scene.
+        if (s_activeScene != next)
+        {
+            s_nextScene = next;
+        }
+    }
+    
+    private static void TransitionScene()
+    {
+        // If there is an active scene, dispose of it.
+        if (s_activeScene != null)
+        {
+            s_activeScene.Dispose();
+        }
+
+        // Force the garbage collector to collect to ensure memory is cleared.
+        GC.Collect();
+
+        // Change the currently active scene to the new scene.
+        s_activeScene = s_nextScene;
+
+        // Null out the next scene value so it does not trigger a change over and over.
+        s_nextScene = null;
+
+        // If the active scene now is not null, initialize it.
+        // Remember, just like with Game, the Initialize call also calls the
+        // Scene.LoadContent
+        if (s_activeScene != null)
+        {
+            s_activeScene.Initialize();
+        }
+    }
+    
 }

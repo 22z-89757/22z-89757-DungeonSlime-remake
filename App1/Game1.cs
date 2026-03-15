@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
+using Microsoft.Xna.Framework.Media;
 using ClassLibrary;
 using ClassLibrary.Graphic;
 using ClassLibrary.Input;
@@ -17,14 +19,12 @@ public class Game1 : Core
     // 蛇身体节点列表
     private List<Slime> _snakeBody;
     
-    // 蝙蝠（食物）
-    private AnimatedSprite _bat;
+    // 蝙蝠列表
+    private List<Bat> _bats;
     
-    // 蝙蝠位置
-    private Vector2 _batPosition;
-    
-    // 蝙蝠速度
-    private Vector2 _batVelocity;
+    // 蝙蝠生成计时器
+    private float _batSpawnTimer;
+    private const float BAT_SPAWN_INTERVAL = 2f; // 2秒生成一个蝙蝠
     
     // 移动速度
     private const float MOVEMENT_SPEED = 3.0f;
@@ -32,20 +32,52 @@ public class Game1 : Core
     // 身体节点之间的距离（以帧数计算）
     private const int BODY_DISTANCE_IN_FRAMES = 15;
     
+    // The sound effect to play when the bat bounces off the edge of the screen.
+    private SoundEffect _bounceSoundEffect;
+
+    // The sound effect to play when the slime eats a bat.
+    private SoundEffect _collectSoundEffect;
+    
+    // The background theme song
+    private Song _themeSong;
+    
+    // The SpriteFont Description used to draw text.
+    private SpriteFont _font;
+
+    // Tracks the players score.
+    private int _score;
+
+    // Defines the position to draw the score text at.
+    private Vector2 _scoreTextPosition;
+
+    // Defines the origin used when drawing the score text.
+    private Vector2 _scoreTextOrigin;
+    
+    
+    
+    
     public Game1() : base("贪吃蛇大作战", 1280, 720, false)
     {
         _snakeBody = new List<Slime>();
+        _bats = new List<Bat>();
     }
 
     protected override void Initialize()
     {
         base.Initialize();
         
-        // 设置蝙蝠初始位置
-        _batPosition = new Vector2(_snakeHead.Sprite.Width + 10, 0);
+        // 初始化蝙蝠生成计时器
+        _batSpawnTimer = 0f;
         
-        // 分配随机速度给蝙蝠
-        AssignRandomBatVelocity();
+        // Start playing the background music.
+        Audio.PlaySong(_themeSong);
+        
+        // Set the position of the score text
+        _scoreTextPosition = new Vector2(15, 20);
+
+        // Set the origin of the text so it is left-centered.
+        float scoreTextYOrigin = _font.MeasureString("Score").Y * 0.5f;
+        _scoreTextOrigin = new Vector2(0, scoreTextYOrigin);
     }
 
     protected override void LoadContent()
@@ -70,9 +102,17 @@ public class Game1 : Core
             AddBodySegment(atlas);
         }
         
-        // 创建蝙蝠动画精灵
-        _bat = atlas.CreateAnimatedSprite("bat-animation");
-        _bat.Scale = new Vector2(4.0f, 4.0f);
+        // Load the bounce sound effect
+        _bounceSoundEffect = Content.Load<SoundEffect>("audio/bounce");
+
+        // Load the collect sound effect
+        _collectSoundEffect = Content.Load<SoundEffect>("audio/collect");
+
+        // Load the background theme music.
+        _themeSong = Content.Load<Song>("audio/theme");
+        
+        // Load the font
+        _font = Content.Load<SpriteFont>("fonts/04B_30");
         
         base.LoadContent();
     }
@@ -92,19 +132,21 @@ public class Game1 : Core
         // 更新蛇身体节点位置（基于历史路径）
         UpdateSnakeBody();
         
+        // 更新蝙蝠生成
+        UpdateBatSpawning(gameTime);
+        
+        // 更新所有蝙蝠
+        UpdateBats(gameTime);
+        
         // 更新所有动画
         _snakeHead.Update(gameTime);
         foreach (var bodySegment in _snakeBody)
         {
             bodySegment.Update(gameTime);
         }
-        _bat.Update(gameTime);
         
         // 边界检测
         HandleScreenBounds();
-        
-        // 更新蝙蝠
-        UpdateBat();
         
         // 碰撞检测
         CheckCollisions();
@@ -148,9 +190,31 @@ public class Game1 : Core
             hasInput = true;
         }
         
+        // If the M key is pressed, toggle mute state for audio.
+        if (InputMgr.Keyboard.WasKeyJustPressed(Keys.M))
+        {
+            Audio.ToggleMute();
+        }
+
+        // If the + button is pressed, increase the volume.
+        if (InputMgr.Keyboard.WasKeyJustPressed(Keys.OemPlus))
+        {
+            Audio.SongVolume += 0.1f;
+            Audio.SoundEffectVolume += 0.1f;
+        }
+
+        // If the - button was pressed, decrease the volume.
+        if (InputMgr.Keyboard.WasKeyJustPressed(Keys.OemMinus))
+        {
+            Audio.SongVolume -= 0.1f;
+            Audio.SoundEffectVolume -= 0.1f;
+        }
+        
+        
+        
         // 手柄输入
         GamePadInfo gamePadOne = InputMgr.GamePads[(int)PlayerIndex.One];
-        if (gamePadOne.IsButtonDown(Buttons.A))
+        if (gamePadOne.IsButtonDown(Buttons.RightTrigger))
         {
             speed *= 1.5f;
             gamePadOne.SetVibration(1.0f, TimeSpan.FromSeconds(1));
@@ -283,9 +347,63 @@ public class Game1 : Core
     }
     
     /// <summary>
-    /// 更新蝙蝠位置
+    /// 更新蝙蝠生成
     /// </summary>
-    private void UpdateBat()
+    private void UpdateBatSpawning(GameTime gameTime)
+    {
+        // 增加计时器
+        _batSpawnTimer += (float)gameTime.ElapsedGameTime.TotalSeconds;
+        
+        // 如果计时器超过间隔时间且蝙蝠数量少于4个，则生成新蝙蝠
+        if (_batSpawnTimer >= BAT_SPAWN_INTERVAL && _bats.Count < 4)
+        {
+            SpawnBat();
+            _batSpawnTimer = 0f;
+        }
+    }
+    
+    /// <summary>
+    /// 生成一个蝙蝠
+    /// </summary>
+    private void SpawnBat()
+    {
+        // 创建纹理图集
+        TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/File.xml");
+        
+        // 创建蝙蝠精灵
+        AnimatedSprite batSprite = atlas.CreateAnimatedSprite("bat-animation");
+        batSprite.Scale = new Vector2(4.0f, 4.0f);
+        
+        // 随机位置
+        int totalColumns = GraphicsDevice.PresentationParameters.BackBufferWidth / (int)batSprite.Width;
+        int totalRows = GraphicsDevice.PresentationParameters.BackBufferHeight / (int)batSprite.Height;
+        
+        int column = Random.Shared.Next(0, totalColumns);
+        int row = Random.Shared.Next(0, totalRows);
+        
+        Vector2 position = new Vector2(column * batSprite.Width, row * batSprite.Height);
+        
+        // 随机速度
+        float angle = (float)(Random.Shared.NextDouble() * Math.PI * 2);
+        float x = (float)Math.Cos(angle);
+        float y = (float)Math.Sin(angle);
+        Vector2 velocity = new Vector2(x, y) * MOVEMENT_SPEED;
+        
+        // 创建蝙蝠对象
+        Bat bat = new Bat
+        {
+            Sprite = batSprite,
+            Position = position,
+            Velocity = velocity
+        };
+        
+        _bats.Add(bat);
+    }
+    
+    /// <summary>
+    /// 更新所有蝙蝠
+    /// </summary>
+    private void UpdateBats(GameTime gameTime)
     {
         Rectangle screenBounds = new Rectangle(
             0, 0,
@@ -293,46 +411,58 @@ public class Game1 : Core
             GraphicsDevice.PresentationParameters.BackBufferHeight
         );
         
-        Vector2 newBatPosition = _batPosition + _batVelocity;
-        
-        Circle batBounds = new Circle(
-            (int)(newBatPosition.X + (_bat.Width * 0.5f)),
-            (int)(newBatPosition.Y + (_bat.Height * 0.5f)),
-            (int)(_bat.Width * 0.5f)
-        );
-        
-        Vector2 normal = Vector2.Zero;
-        
-        // 蝙蝠碰到墙壁反弹
-        if (batBounds.Left < screenBounds.Left)
+        for (int i = _bats.Count - 1; i >= 0; i--)
         {
-            normal.X = Vector2.UnitX.X;
-            newBatPosition.X = screenBounds.Left;
+            Bat bat = _bats[i];
+            
+            // 更新蝙蝠位置
+            Vector2 newBatPosition = bat.Position + bat.Velocity;
+            
+            Circle batBounds = new Circle(
+                (int)(newBatPosition.X + (bat.Sprite.Width * 0.5f)),
+                (int)(newBatPosition.Y + (bat.Sprite.Height * 0.5f)),
+                (int)(bat.Sprite.Width * 0.5f)
+            );
+            
+            Vector2 normal = Vector2.Zero;
+            
+            // 蝙蝠碰到墙壁反弹
+            if (batBounds.Left < screenBounds.Left)
+            {
+                normal.X = Vector2.UnitX.X;
+                newBatPosition.X = screenBounds.Left;
+            }
+            else if (batBounds.Right > screenBounds.Right)
+            {
+                normal.X = -Vector2.UnitX.X;
+                newBatPosition.X = screenBounds.Right - bat.Sprite.Width;
+            }
+            
+            if (batBounds.Top < screenBounds.Top)
+            {
+                normal.Y = Vector2.UnitY.Y;
+                newBatPosition.Y = screenBounds.Top;
+            }
+            else if (batBounds.Bottom > screenBounds.Bottom)
+            {
+                normal.Y = -Vector2.UnitY.Y;
+                newBatPosition.Y = screenBounds.Bottom - bat.Sprite.Height;
+            }
+            
+            if (normal != Vector2.Zero)
+            {
+                normal.Normalize();
+                bat.Velocity = Vector2.Reflect(bat.Velocity, normal);
+                
+                // Play the bounce sound effect
+                Audio.PlaySoundEffect(_bounceSoundEffect);
+            }
+            
+            bat.Position = newBatPosition;
+            
+            // 更新动画
+            bat.Sprite.Update(gameTime);
         }
-        else if (batBounds.Right > screenBounds.Right)
-        {
-            normal.X = -Vector2.UnitX.X;
-            newBatPosition.X = screenBounds.Right - _bat.Width;
-        }
-        
-        if (batBounds.Top < screenBounds.Top)
-        {
-            normal.Y = Vector2.UnitY.Y;
-            newBatPosition.Y = screenBounds.Top;
-        }
-        else if (batBounds.Bottom > screenBounds.Bottom)
-        {
-            normal.Y = -Vector2.UnitY.Y;
-            newBatPosition.Y = screenBounds.Bottom - _bat.Height;
-        }
-        
-        if (normal != Vector2.Zero)
-        {
-            normal.Normalize();
-            _batVelocity = Vector2.Reflect(_batVelocity, normal);
-        }
-        
-        _batPosition = newBatPosition;
     }
     
     /// <summary>
@@ -346,43 +476,34 @@ public class Game1 : Core
             (int)(_snakeHead.Sprite.Width * 0.3f)
         );
         
-        Circle batBounds = new Circle(
-            (int)(_batPosition.X + (_bat.Width * 0.5f)),
-            (int)(_batPosition.Y + (_bat.Height * 0.5f)),
-            (int)(_bat.Width * 0.5f)
-        );
-        
-        // 蛇头吃到蝙蝠
-        if (headBounds.Intersects(batBounds))
+        // 检查与所有蝙蝠的碰撞
+        for (int i = _bats.Count - 1; i >= 0; i--)
         {
-            // 添加一个身体节点
-            TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/File.xml");
-            AddBodySegment(atlas);
+            Bat bat = _bats[i];
             
-            // 重新定位蝙蝠
-            int totalColumns = GraphicsDevice.PresentationParameters.BackBufferWidth / (int)_bat.Width;
-            int totalRows = GraphicsDevice.PresentationParameters.BackBufferHeight / (int)_bat.Height;
+            Circle batBounds = new Circle(
+                (int)(bat.Position.X + (bat.Sprite.Width * 0.5f)),
+                (int)(bat.Position.Y + (bat.Sprite.Height * 0.5f)),
+                (int)(bat.Sprite.Width * 0.5f)
+            );
             
-            int column = Random.Shared.Next(0, totalColumns);
-            int row = Random.Shared.Next(0, totalRows);
-            
-            _batPosition = new Vector2(column * _bat.Width, row * _bat.Height);
-            
-            // 分配新的随机速度
-            AssignRandomBatVelocity();
+            // 蛇头吃到蝙蝠
+            if (headBounds.Intersects(batBounds))
+            {
+                // Play the collect sound effect
+                Audio.PlaySoundEffect(_collectSoundEffect);
+                
+                // Increase the player's score.
+                _score += 100;
+                
+                // 添加一个身体节点
+                TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/File.xml");
+                AddBodySegment(atlas);
+                
+                // 移除被吃掉的蝙蝠
+                _bats.RemoveAt(i);
+            }
         }
-    }
-    
-    /// <summary>
-    /// 为蝙蝠分配随机速度
-    /// </summary>
-    private void AssignRandomBatVelocity()
-    {
-        float angle = (float)(Random.Shared.NextDouble() * Math.PI * 2);
-        float x = (float)Math.Cos(angle);
-        float y = (float)Math.Sin(angle);
-        Vector2 direction = new Vector2(x, y);
-        _batVelocity = direction * MOVEMENT_SPEED;
     }
 
     protected override void Draw(GameTime gameTime)
@@ -400,9 +521,25 @@ public class Game1 : Core
         // 绘制蛇头
         _snakeHead.Draw(SpriteBatch);
         
-        // 绘制蝙蝠
-        _bat.Draw(SpriteBatch, _batPosition);
-
+        // 绘制所有蝙蝠
+        foreach (Bat bat in _bats)
+        {
+            bat.Sprite.Draw(SpriteBatch, bat.Position);
+        }
+        
+        // Draw the score
+        SpriteBatch.DrawString(
+            _font,              // spriteFont
+            $"Score: {_score}", // text
+            _scoreTextPosition, // position
+            Color.White,        // color
+            0.0f,               // rotation
+            _scoreTextOrigin,   // origin
+            1.0f,               // scale
+            SpriteEffects.None, // effects
+            0.0f                // layerDepth
+        );
+        
         SpriteBatch.End();
         
         base.Draw(gameTime);
