@@ -45,6 +45,13 @@ public class TitleScene : Scene
     // 移动速度
     private const float MOVEMENT_SPEED = 3.0f;
     
+    // 排行榜相关变量
+    private List<ScoreEntry> _leaderboardEntries;
+    private Vector2 _leaderboardTitlePos;
+    private Vector2 _leaderboardTitleOrigin;
+    private Vector2 _leaderboardEntriesPos;
+    private Vector2 _leaderboardEntriesOrigin;
+    
     
     
     public override void LoadContent()
@@ -71,6 +78,9 @@ public class TitleScene : Scene
         _titleSlimes = new List<Slime>();
         InitializeTitleSlimes();
 
+        // 加载排行榜数据
+        _leaderboardEntries = LeaderboardManager.GetTopEntries(3);
+
         // Set the position and origin for the Dungeon text.
         Vector2 size = _font5x.MeasureString(DUNGEON_TEXT);
         _dungeonTextPos = new Vector2(640, 100);
@@ -85,6 +95,18 @@ public class TitleScene : Scene
         size = _font.MeasureString(PRESS_ENTER_TEXT);
         _pressEnterPos = new Vector2(640, 620);
         _pressEnterOrigin = size * 0.5f;
+
+        // Set the position and origin for the leaderboard title.
+        string leaderboardTitle = "Top 3";
+        size = _font.MeasureString(leaderboardTitle);
+        _leaderboardTitlePos = new Vector2(640, 300); // 左侧20%位置
+        _leaderboardTitleOrigin = size * 0.5f;
+
+        // Set the position and origin for the leaderboard entries.
+        string leaderboardEntries = GenerateLeaderboardText();
+        size = _font.MeasureString(leaderboardEntries);
+        _leaderboardEntriesPos = new Vector2(640, 400); // 左侧20%位置，下方
+        _leaderboardEntriesOrigin = size * 0.5f;
     }
     
     /// <summary>
@@ -152,6 +174,9 @@ public class TitleScene : Scene
         {
             Core.ChangeScene(new GameScene());
         }
+        
+        // 刷新排行榜数据（每次更新都重新加载，确保显示最新数据）
+        _leaderboardEntries = LeaderboardManager.GetTopEntries(3);
     }
     
     /// <summary>
@@ -226,6 +251,33 @@ public class TitleScene : Scene
         _titleSlimes.Add(slime);
     }
     
+    /// <summary>
+    /// 生成排行榜文本
+    /// </summary>
+    /// <returns>格式化的排行榜文本</returns>
+    private string GenerateLeaderboardText()
+    {
+        if (_leaderboardEntries == null || _leaderboardEntries.Count == 0)
+        {
+            return "No scores yet";
+        }
+        
+        string text = "";
+        for (int i = 0; i < _leaderboardEntries.Count; i++)
+        {
+            var entry = _leaderboardEntries[i];
+            text += $"{i + 1}. {entry.Score} - {entry.FormatSurvivalTime()}\n\n";
+        }
+        
+        // 移除最后一个换行符
+        if (text.EndsWith("\n"))
+        {
+            text = text.Substring(0, text.Length - 1);
+        }
+        
+        return text;
+    }
+    
     public override void Draw(GameTime gameTime)
     {
         Core.GraphicsDevice.Clear(new Color(32, 40, 78, 255));
@@ -258,6 +310,13 @@ public class TitleScene : Scene
 
         // Draw the press enter text.
         Core.SpriteBatch.DrawString(_font, PRESS_ENTER_TEXT, _pressEnterPos, Color.White, 0.0f, _pressEnterOrigin, 1.0f, SpriteEffects.None, 0.0f);
+
+        // Draw the leaderboard title.
+        Core.SpriteBatch.DrawString(_font, "Top 3", _leaderboardTitlePos, Color.Yellow, 0.0f, _leaderboardTitleOrigin, 1.0f, SpriteEffects.None, 0.0f);
+
+        // Draw the leaderboard entries.
+        string leaderboardText = GenerateLeaderboardText();
+        Core.SpriteBatch.DrawString(_font, leaderboardText, _leaderboardEntriesPos, Color.Yellow, 0.0f, _leaderboardEntriesOrigin, 0.7f, SpriteEffects.None, 0.0f);
 
         // Always end the sprite batch when finished.
         Core.SpriteBatch.End();

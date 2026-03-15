@@ -92,6 +92,9 @@ public class GameoverScene : Scene
         // can close the game by pressing the escape key.
         Core.ExitOnEscape = true;
 
+        // 保存分数到排行榜
+        LeaderboardManager.AddEntry(_score, _survivalTime);
+
         // Set the position and origin for the game over text.
         Vector2 size = _font5x.MeasureString(GAME_OVER_TEXT);
         _gameOverTextPos = new Vector2(640, 150);

@@ -125,8 +125,8 @@ public class GameScene : Scene
 
     public override void Update(GameTime gameTime)
     {
-        if (GamePad.GetState(PlayerIndex.One).Buttons.Back == ButtonState.Pressed ||
-            Keyboard.GetState().IsKeyDown(Keys.Escape))
+        if (GamePad.GetState(PlayerIndex.One).Buttons.B == ButtonState.Pressed ||
+            Keyboard.GetState().IsKeyDown(Keys.Back))
         {
             Core.ChangeScene(new TitleScene());
         }
@@ -134,7 +134,8 @@ public class GameScene : Scene
         // 如果游戏结束，只处理返回主菜单的输入
         if (_gameState == E_GameState.GameOver)
         {
-            if (Core.InputMgr.Keyboard.WasKeyJustPressed(Keys.Enter))
+            if (Core.InputMgr.Keyboard.WasKeyJustPressed(Keys.Enter) || 
+                Core.InputMgr.GamePads[0].WasButtonJustPressed(Buttons.A))
             {
                 Core.ChangeScene(new TitleScene());
             }
@@ -569,7 +570,7 @@ public class GameScene : Scene
 
     public override void Draw(GameTime gameTime)
     {
-        Core.GraphicsDevice.Clear(Color.CornflowerBlue);
+        Core.GraphicsDevice.Clear(Color.BlueViolet);
 
         Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
