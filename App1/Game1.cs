@@ -6,9 +6,9 @@ using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
 using Microsoft.Xna.Framework.Media;
-using ClassLibrary;
-using ClassLibrary.Graphic;
-using ClassLibrary.Input;
+using MonoGameLibrary;
+using MonoGameLibrary.Graphic;
+using MonoGameLibrary.Input;
 
 namespace App1;
 

@@ -1,4 +1,4 @@
-using ClassLibrary.Graphic;
+using MonoGameLibrary.Graphic;
 using Microsoft.Xna.Framework;
 
 namespace App1;

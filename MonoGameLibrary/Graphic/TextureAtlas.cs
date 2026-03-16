@@ -7,7 +7,7 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace ClassLibrary.Graphic;
+namespace MonoGameLibrary.Graphic;
 
 /// <summary>
 /// 纹理图集类（保存此源图中所有单个sprite的剪贴簿）

@@ -2,7 +2,7 @@ using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Input;
 
-namespace ClassLibrary.Input;
+namespace MonoGameLibrary.Input;
 
 public class GamePadInfo 
 {

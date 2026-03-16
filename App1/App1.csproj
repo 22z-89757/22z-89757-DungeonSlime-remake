@@ -19,6 +19,6 @@
       <Compile Remove="Core.cs" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\ClassLibrary\ClassLibrary.csproj" />
+      <ProjectReference Include="..\MonoGameLibrary\MonoGameLibrary.csproj" />
     </ItemGroup>
 </Project>

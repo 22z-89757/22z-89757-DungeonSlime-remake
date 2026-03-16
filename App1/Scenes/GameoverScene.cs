@@ -3,10 +3,10 @@ using System.Collections.Generic;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using ClassLibrary;
-using ClassLibrary.Graphic;
-using ClassLibrary.Input;
-using ClassLibrary.Scenes;
+using MonoGameLibrary;
+using MonoGameLibrary.Graphic;
+using MonoGameLibrary.Input;
+using MonoGameLibrary.Scenes;
 
 namespace App1.Scenes;
 

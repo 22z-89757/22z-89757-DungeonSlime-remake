@@ -3,11 +3,11 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using ClassLibrary.Audio;
-using ClassLibrary.Input;
-using ClassLibrary.Scenes;
+using MonoGameLibrary.Audio;
+using MonoGameLibrary.Input;
+using MonoGameLibrary.Scenes;
 
-namespace ClassLibrary;
+namespace MonoGameLibrary;
 
 public class Core : Game   //使用了单例模式。提供一个全局通用的游戏引擎核心框架。通过继承自Game类，将原本分散的功能整合在了一起。
 {

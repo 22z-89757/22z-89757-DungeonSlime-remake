@@ -2,9 +2,9 @@ using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using ClassLibrary;
-using ClassLibrary.Scenes;
-using ClassLibrary.Graphic;
+using MonoGameLibrary;
+using MonoGameLibrary.Scenes;
+using MonoGameLibrary.Graphic;
 using System.Collections.Generic;
 
 namespace App1.Scenes;

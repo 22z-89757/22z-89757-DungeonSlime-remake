@@ -1,7 +1,7 @@
 using System;
 using Microsoft.Xna.Framework;
 
-namespace ClassLibrary.Graphic;
+namespace MonoGameLibrary.Graphic;
 
 public class AnimatedSprite : Sprite 
 {

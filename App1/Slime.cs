@@ -1,8 +1,8 @@
 using System;
 using System.Collections.Generic;
-using ClassLibrary;
+using MonoGameLibrary;
 using Microsoft.Xna.Framework;
-using ClassLibrary.Graphic;
+using MonoGameLibrary.Graphic;
 
 namespace App1;
 
@@ -37,14 +37,6 @@ public class Slime
     private bool _tired;    // 是否曾经耗尽过体力
     
     /// <summary>
-    /// 随机颜色数组
-    /// </summary>
-    private static readonly Color[] RandomColors = {
-        Color.Red, Color.Blue, Color.Green, Color.Yellow, Color.Purple,
-        Color.Orange, Color.Pink, Color.Cyan, Color.Magenta, Color.Lime
-    };
-    
-    /// <summary>
     /// 历史位置队列，用于身体节点跟随
     /// </summary>
     private Queue<Vector2> _positionHistory;
@@ -64,7 +56,7 @@ public class Slime
         
         // 初始化历史位置队列
         _positionHistory = new Queue<Vector2>();
-        _maxHistoryLength = 1000; // 默认最大历史长度
+        _maxHistoryLength = 2500; // 默认最大历史长度
     }
     
     /// <summary>
@@ -150,7 +142,7 @@ public class Slime
     /// <summary>
     /// 更新蛇头位置（基于速度）
     /// </summary>
-    public void UpdateHead(GameTime gameTime)
+    public void UpdateHead()
     {
         if (Type == E_SlimeType.Head)
         {
@@ -173,17 +165,6 @@ public class Slime
     public void Draw(Microsoft.Xna.Framework.Graphics.SpriteBatch spriteBatch)
     {
         Sprite?.Draw(spriteBatch, Position);
-    }
-    
-    /// <summary>
-    /// 设置随机颜色
-    /// </summary>
-    public void SetRandomColor()
-    {
-        if (Sprite != null)
-        {
-            Sprite.Color = RandomColors[Random.Shared.Next(RandomColors.Length)];
-        }
     }
     
     /// <summary>

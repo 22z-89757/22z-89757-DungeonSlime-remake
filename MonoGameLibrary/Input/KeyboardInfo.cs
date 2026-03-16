@@ -1,6 +1,6 @@
 using Microsoft.Xna.Framework.Input;
 
-namespace ClassLibrary.Input;
+namespace MonoGameLibrary.Input;
 
 public class KeyboardInfo
 {

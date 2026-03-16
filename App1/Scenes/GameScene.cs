@@ -4,10 +4,10 @@ using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
-using ClassLibrary;
-using ClassLibrary.Graphic;
-using ClassLibrary.Input;
-using ClassLibrary.Scenes;
+using MonoGameLibrary;
+using MonoGameLibrary.Graphic;
+using MonoGameLibrary.Input;
+using MonoGameLibrary.Scenes;
 using Keyboard = Microsoft.Xna.Framework.Input.Keyboard;
 
 namespace App1.Scenes;
@@ -38,7 +38,7 @@ public class GameScene : Scene
     private const float MOVEMENT_SPEED = 3.0f;
     
     // 身体节点之间的距离（以帧数计算）
-    private const int BODY_DISTANCE_IN_FRAMES = 15;
+    private const int BODY_DISTANCE_IN_FRAMES = 20;
     
     // 游戏状态
     private E_GameState _gameState;
@@ -52,9 +52,6 @@ public class GameScene : Scene
     // The sound effect to play when the slime eats a bat.
     private SoundEffect _collectSoundEffect;
     
-    // The sound effect to play when the game is over.
-    private SoundEffect _gameOverSoundEffect;
-    
     // The SpriteFont Description used to draw text.
     private SpriteFont _font;
 
@@ -66,6 +63,15 @@ public class GameScene : Scene
 
     // Defines the origin used when drawing the score text.
     private Vector2 _scoreTextOrigin;
+    
+    // The SpriteFont used to draw time text.
+    private SpriteFont _timeFont;
+
+    // Defines the position to draw the time text at.
+    private Vector2 _timeTextPosition;
+
+    // Defines the origin used when drawing the time text.
+    private Vector2 _timeTextOrigin;
     
     // 体力值UI相关字段
     private SpriteFont _staminaFont; // 体力值字体
@@ -97,6 +103,13 @@ public class GameScene : Scene
         // Set the origin of the text so it is left-centered.
         float scoreTextYOrigin = _font.MeasureString("Score").Y * 0.5f;
         _scoreTextOrigin = new Vector2(0, scoreTextYOrigin);
+        
+        // Set the position of the time text (below the score)
+        _timeTextPosition = new Vector2(15, 60);
+
+        // Set the origin of the time text so it is left-centered.
+        float timeTextYOrigin = _timeFont.MeasureString("Time: 00:00").Y * 0.5f;
+        _timeTextOrigin = new Vector2(0, timeTextYOrigin);
         
         // 初始化体力值条位置（右上角）
         _staminaBarPosition = new Vector2(
@@ -134,6 +147,9 @@ public class GameScene : Scene
         // Load the font
         _font = Content.Load<SpriteFont>("fonts/04B_30");
         
+        // Load the time font
+        _timeFont = Content.Load<SpriteFont>("fonts/04B_30");
+        
         // Load the stamina font
         _staminaFont = Content.Load<SpriteFont>("fonts/04B_30");
         
@@ -167,7 +183,7 @@ public class GameScene : Scene
         HandleInput();
         
         // 更新蛇头位置
-        _snakeHead.UpdateHead(gameTime);
+        _snakeHead.UpdateHead();
         
         // 更新蛇身体节点位置（基于历史路径）
         UpdateSnakeBody();
@@ -583,11 +599,6 @@ public class GameScene : Scene
     {
         _gameState = E_GameState.GameOver;
         
-        // 播放游戏结束音效
-        if (_gameOverSoundEffect != null)
-        {
-            Core.Audio.PlaySoundEffect(_gameOverSoundEffect);
-        }
         
         // 计算存活时间
         TimeSpan survivalTime = DateTime.Now - _gameStartTime;
@@ -628,6 +639,21 @@ public class GameScene : Scene
             1.0f,              // scale
             SpriteEffects.None,     // effects
             0.0f          // layerDepth
+        );
+        
+        // Draw the time
+        TimeSpan elapsedTime = DateTime.Now - _gameStartTime;
+        string timeText = $"Time: {elapsedTime.Minutes:00}:{elapsedTime.Seconds:00}";
+        Core.SpriteBatch.DrawString(
+            _timeFont,              // spriteFont
+            timeText,               // text
+            _timeTextPosition,      // position
+            Color.White,            // color
+            0.0f,                   // rotation
+            _timeTextOrigin,        // origin
+            1.0f,                   // scale
+            SpriteEffects.None,     // effects
+            0.0f                    // layerDepth
         );
         
         // 绘制体力值条

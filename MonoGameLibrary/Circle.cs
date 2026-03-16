@@ -1,7 +1,7 @@
 using System;
 using Microsoft.Xna.Framework;
 
-namespace ClassLibrary;
+namespace MonoGameLibrary;
 
 public readonly struct Circle : IEquatable<Circle> //readonly-运行时不可变
 {

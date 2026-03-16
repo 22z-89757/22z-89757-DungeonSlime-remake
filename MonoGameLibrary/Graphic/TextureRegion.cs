@@ -1,7 +1,7 @@
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 
-namespace ClassLibrary.Graphic;
+namespace MonoGameLibrary.Graphic;
 
 /// <summary>
 /// 渲染区域类（表示一块划分出来的渲染区域）

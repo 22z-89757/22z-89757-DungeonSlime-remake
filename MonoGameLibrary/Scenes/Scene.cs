@@ -2,7 +2,7 @@ using System;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Content;
 
-namespace ClassLibrary.Scenes;
+namespace MonoGameLibrary.Scenes;
 
 public abstract class Scene : IDisposable
 {
