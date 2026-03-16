@@ -8,8 +8,6 @@ using ClassLibrary;
 using ClassLibrary.Graphic;
 using ClassLibrary.Input;
 using ClassLibrary.Scenes;
-using Microsoft.VisualBasic.Devices;
-using Microsoft.Xna.Framework.Media;
 using Keyboard = Microsoft.Xna.Framework.Input.Keyboard;
 
 namespace App1.Scenes;
@@ -69,6 +67,12 @@ public class GameScene : Scene
     // Defines the origin used when drawing the score text.
     private Vector2 _scoreTextOrigin;
     
+    // 体力值UI相关字段
+    private SpriteFont _staminaFont; // 体力值字体
+    private Vector2 _staminaBarPosition; // 体力值条位置
+    private Vector2 _staminaTextPosition; // 体力值文字位置
+    private Texture2D _pixelTexture; // 用于绘制矩形的1x1像素纹理
+    
     
     
     
@@ -93,6 +97,16 @@ public class GameScene : Scene
         // Set the origin of the text so it is left-centered.
         float scoreTextYOrigin = _font.MeasureString("Score").Y * 0.5f;
         _scoreTextOrigin = new Vector2(0, scoreTextYOrigin);
+        
+        // 初始化体力值条位置（右上角）
+        _staminaBarPosition = new Vector2(
+            Core.GraphicsDevice.PresentationParameters.BackBufferWidth - 600, 
+            20
+        );
+        _staminaTextPosition = new Vector2(
+            Core.GraphicsDevice.PresentationParameters.BackBufferWidth - 340, 
+            45
+        );
     }
 
     public override void LoadContent()
@@ -119,6 +133,13 @@ public class GameScene : Scene
         
         // Load the font
         _font = Content.Load<SpriteFont>("fonts/04B_30");
+        
+        // Load the stamina font
+        _staminaFont = Content.Load<SpriteFont>("fonts/04B_30");
+        
+        // Create a 1x1 pixel texture for drawing rectangles
+        _pixelTexture = new Texture2D(Core.GraphicsDevice, 1, 1);
+        _pixelTexture.SetData(new[] { Color.White });
         
         base.LoadContent();
     }
@@ -159,6 +180,7 @@ public class GameScene : Scene
         
         // 更新所有动画
         _snakeHead.Update(gameTime);
+        _snakeHead.UpdateStamina(gameTime);
         foreach (var bodySegment in _snakeBody)
         {
             bodySegment.Update(gameTime);
@@ -181,11 +203,13 @@ public class GameScene : Scene
         Vector2 direction = Vector2.Zero;
         float speed = MOVEMENT_SPEED;
         bool hasInput = false;
+        bool isSprinting = false;
         
         // 键盘输入
-        if (Core.InputMgr.Keyboard.IsKeyDown(Keys.Space))
+        if (Core.InputMgr.Keyboard.IsKeyDown(Keys.Space) && _snakeHead.CanSprint())
         {
             speed *= 1.5f;
+            isSprinting = true;
         }
         
         if (Core.InputMgr.Keyboard.IsKeyDown(Keys.W) || Core.InputMgr.Keyboard.IsKeyDown(Keys.Up))
@@ -233,9 +257,10 @@ public class GameScene : Scene
         
         // 手柄输入
         GamePadInfo gamePadOne = Core.InputMgr.GamePads[(int)PlayerIndex.One];
-        if (gamePadOne.IsButtonDown(Buttons.RightTrigger))
+        if (gamePadOne.IsButtonDown(Buttons.RightTrigger) && _snakeHead.CanSprint())
         {
             speed *= 1.5f;
+            isSprinting = true;
             gamePadOne.SetVibration(1.0f, TimeSpan.FromSeconds(1));
         }
         else
@@ -287,6 +312,9 @@ public class GameScene : Scene
         
         // 始终使用LastDirection移动（持续移动）
         _snakeHead.Velocity = _snakeHead.LastDirection * speed;
+        
+        // 设置冲刺状态
+        _snakeHead.SetSprinting(isSprinting);
     }
     
     /// <summary>
@@ -567,7 +595,7 @@ public class GameScene : Scene
         // 切换到游戏结束场景
         Core.ChangeScene(new GameoverScene(_score, survivalTime));
     }
-
+    
     public override void Draw(GameTime gameTime)
     {
         Core.GraphicsDevice.Clear(Color.BlueViolet);
@@ -602,9 +630,64 @@ public class GameScene : Scene
             0.0f          // layerDepth
         );
         
+        // 绘制体力值条
+        DrawStaminaBar();
+        
         Core.SpriteBatch.End();
         
         base.Draw(gameTime);
     }
     
+    /// <summary>
+    /// 绘制体力值条
+    /// </summary>
+    private void DrawStaminaBar()
+    {
+        // 获取体力值百分比
+        float staminaPercentage = _snakeHead.GetStaminaPercentage();
+        
+        // 计算体力值条的宽度
+        int staminaBarWidth = (int)(500 * staminaPercentage);
+        
+        // 计算体力值条的颜色（从红色到绿色渐变）
+        Color staminaColor = new Color(
+            (byte)(255 * (1 - staminaPercentage)),  // 红色成分随体力增加而减少
+            (byte)(255 * staminaPercentage),        // 绿色成分随体力增加而增加
+            0
+        );
+        
+        // 绘制体力值条背景（灰色）
+        Core.SpriteBatch.Draw(
+            _pixelTexture,
+            new Rectangle((int)_staminaBarPosition.X, (int)_staminaBarPosition.Y, 500, 8),
+            Color.DarkGray
+        );
+        
+        // 绘制体力值条内容（颜色渐变）
+        if (staminaBarWidth > 0)
+        {
+            Core.SpriteBatch.Draw(
+                _pixelTexture,
+                new Rectangle((int)_staminaBarPosition.X, (int)_staminaBarPosition.Y , staminaBarWidth, 8),
+                staminaColor
+            );
+        }
+        
+        // 绘制体力值文字
+        string staminaText = $"Stamina: {Math.Round(staminaPercentage * 100)}%";
+        Vector2 textSize = _staminaFont.MeasureString(staminaText);
+        Vector2 textOrigin = new Vector2(0, textSize.Y * 0.5f);
+        
+        Core.SpriteBatch.DrawString(
+            _staminaFont,
+            staminaText,
+            _staminaTextPosition,
+            Color.White,
+            0.0f,
+            textOrigin,
+            1.0f,
+            SpriteEffects.None,
+            0.0f
+        );
+    }
 }

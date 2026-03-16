@@ -26,6 +26,16 @@ public class Slime
     
     public AnimatedSprite Sprite { get; set; }
     
+    // 体力值相关字段
+    private float _stamina;           // 当前体力值
+    private float _maxStamina = 100f; // 最大体力值
+    private float _staminaRegenRate = 15f; // 体力恢复速度
+    private float _staminaDrainRate = 20f; // 冲刺时体力消耗速度
+    
+    // 冲刺状态
+    private bool _isSprinting;        // 是否正在冲刺
+    private bool _tired;    // 是否曾经耗尽过体力
+    
     /// <summary>
     /// 随机颜色数组
     /// </summary>
@@ -198,5 +208,101 @@ public class Slime
                slimeBounds.Left > screenBounds.Right ||
                slimeBounds.Bottom < screenBounds.Top ||
                slimeBounds.Top > screenBounds.Bottom;
+    }
+    
+    /// <summary>
+    /// 更新体力值
+    /// </summary>
+    /// <param name="gameTime">游戏时间</param>
+    public void UpdateStamina(GameTime gameTime)
+    {
+        if (Type == E_SlimeType.Head)
+        {
+            float elapsedSeconds = (float)gameTime.ElapsedGameTime.TotalSeconds;
+            
+            // 只有在冲刺状态下才消耗体力
+            if (_isSprinting && _stamina > 0)
+            {
+                _stamina -= _staminaDrainRate * elapsedSeconds;
+                if (_stamina < 0) _stamina = 0;
+                
+                // 如果体力耗尽到0，标记为耗尽
+                if (_stamina == 0)
+                {
+                    _tired = true;
+                }
+                
+                if (_tired && _stamina >= 19)
+                {
+                    // 如果曾经耗尽过体力，现在恢复到20以上，重置耗尽状态
+                    _tired = false;
+                }
+            }
+            else
+            {
+                // 非冲刺状态，恢复体力
+                _stamina += _staminaRegenRate * elapsedSeconds;
+                if (_stamina > _maxStamina) _stamina = _maxStamina;
+            }
+        }
+    }
+    
+    /// <summary>
+    /// 检查是否可以冲刺
+    /// </summary>
+    /// <returns>是否可以冲刺</returns>
+    public bool CanSprint()
+    {
+        if (Type != E_SlimeType.Head)
+            return false;
+            
+        // 如果未耗尽体力，可以冲刺到0
+        if (!_tired)
+        {
+            return _stamina > 0;
+        }
+        else
+        {
+            return _stamina > 20;
+        }
+    }
+    
+    /// <summary>
+    /// 获取体力值百分比
+    /// </summary>
+    /// <returns>体力值百分比（0.0到1.0）</returns>
+    public float GetStaminaPercentage()
+    {
+        return Type == E_SlimeType.Head ? _stamina / _maxStamina : 0f;
+    }
+    
+    /// <summary>
+    /// 获取当前体力值
+    /// </summary>
+    /// <returns>当前体力值</returns>
+    public float GetStamina()
+    {
+        return Type == E_SlimeType.Head ? _stamina : 0f;
+    }
+    
+    /// <summary>
+    /// 设置冲刺状态
+    /// </summary>
+    /// <param name="isSprinting">是否正在冲刺</param>
+    public void SetSprinting(bool isSprinting)
+    {
+        if (Type == E_SlimeType.Head)
+        {
+            _isSprinting = isSprinting;
+        }
+    }
+    
+    /// <summary>
+    /// 获取冲刺状态
+    /// </summary>
+    /// <returns>是否正在冲刺</returns>
+    public bool IsSprinting()
+    {
+        return Type == E_SlimeType.Head && _isSprinting;
     }
 }
