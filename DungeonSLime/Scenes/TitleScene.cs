@@ -1,4 +1,5 @@
 using System;
+using DungeonSlime.UI;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using Microsoft.Xna.Framework.Input;
@@ -66,9 +67,19 @@ public class TitleScene : Scene
     private SoundEffect _uiSoundEffect;
     private Panel _titleScreenButtonsPanel;
     private Panel _optionsPanel;
-    private Button _optionsButton;
-    private Slider _musicSlider;
-    private Button _startButton;
+    
+    // The options button used to open the option's menu.
+    private AnimatedButton _optionsButton;
+    
+    // The back button used to exit the options menu back to the title menu.
+    private AnimatedButton _optionsBackButton;
+    
+    private OptionsSlider _musicSlider;
+    private AnimatedButton _startButton;
+    
+    // Reference to the texture atlas that we can pass to UI elements when they
+    // are created.
+    private TextureAtlas _atlas;
     
     
     
@@ -85,6 +96,9 @@ public class TitleScene : Scene
         
         // Load the sound effect to play when ui actions occur.
         _uiSoundEffect = Core.Content.Load<SoundEffect>("audio/ui");
+        
+        // Load the texture atlas from the xml configuration file.
+        _atlas = TextureAtlas.FromFile(Core.Content, "images/File.xml");
     }
     
     public override void Initialize()
@@ -141,12 +155,12 @@ public class TitleScene : Scene
     private void InitializeTitleSlimes()
     {
         // 创建纹理图集
-        TextureAtlas atlas = TextureAtlas.FromFile(Content, "images/File.xml");
+        _atlas = TextureAtlas.FromFile(Content, "images/File.xml");
 
         for (int i = 0; i < 8; i++)
         {
             // 创建slime精灵
-            AnimatedSprite slimeSprite = atlas.CreateAnimatedSprite("slime-animation");
+            AnimatedSprite slimeSprite = _atlas.CreateAnimatedSprite("slime-animation");
             slimeSprite.Scale = new Vector2(4.0f, 4.0f);
             
             // 设置随机颜色
@@ -337,20 +351,20 @@ public class TitleScene : Scene
             _titleScreenButtonsPanel.Dock(Gum.Wireframe.Dock.Fill);
             _titleScreenButtonsPanel.AddToRoot();
 
-            _startButton = new Button();
+            _startButton = new AnimatedButton(_atlas);
             _startButton.Anchor(Gum.Wireframe.Anchor.BottomLeft);
             _startButton.X = 50;
             _startButton.Y = -12;
-            _startButton.Width = 70;
+            _startButton.Width = 30;
             _startButton.Text = "Start";
             _startButton.Click += HandleStartClicked;
             _titleScreenButtonsPanel.AddChild(_startButton);
 
-            _optionsButton = new Button();
+            _optionsButton = new AnimatedButton(_atlas);
             _optionsButton.Anchor(Gum.Wireframe.Anchor.BottomRight);
             _optionsButton.X = -50;
             _optionsButton.Y = -12;
-            _optionsButton.Width = 70;
+            _optionsButton.Width = 30;
             _optionsButton.Text = "Options";
             _optionsButton.Click += HandleOptionsClicked;
             _titleScreenButtonsPanel.AddChild(_optionsButton);
@@ -389,19 +403,18 @@ public class TitleScene : Scene
             _optionsPanel.IsVisible = false;
             _optionsPanel.AddToRoot();
 
-            var optionsText = new TextRuntime();
+            TextRuntime optionsText = new TextRuntime();
             optionsText.X = 10;
             optionsText.Y = 10;
             optionsText.Text = "OPTIONS";
+            optionsText.UseCustomFont = true;
+            optionsText.FontScale = 0.5f;
+            optionsText.CustomFontFile = @"fonts/04b_30.fnt";
             _optionsPanel.AddChild(optionsText);
 
-            var musicLabel = new Label();
-            musicLabel.Text = "Music";
-            musicLabel.X = 35;
-            musicLabel.Y = 35;
-            _optionsPanel.AddChild(musicLabel);
-
-            _musicSlider = new Slider();
+            _musicSlider = new OptionsSlider(_atlas);
+            _musicSlider.Name = "MusicSlider";
+            _musicSlider.Text = "MUSIC";
             _musicSlider.Anchor(Gum.Wireframe.Anchor.Top);
             _musicSlider.Y = 30f;
             _musicSlider.Minimum = 0;
@@ -413,13 +426,9 @@ public class TitleScene : Scene
             _musicSlider.ValueChangeCompleted += HandleMusicSliderValueChangeCompleted;
             _optionsPanel.AddChild(_musicSlider);
 
-            var sfxLabel = new Label();
-            sfxLabel.Text = "SFX";
-            sfxLabel.X = 20;
-            sfxLabel.Y = 80;
-            _optionsPanel.AddChild(sfxLabel);
-
-            var sfxSlider = new Slider();
+            OptionsSlider sfxSlider = new OptionsSlider(_atlas);
+            sfxSlider.Name = "SfxSlider";
+            sfxSlider.Text = "SFX";
             sfxSlider.Anchor(Gum.Wireframe.Anchor.Top);
             sfxSlider.Y = 93;
             sfxSlider.Minimum = 0;
@@ -431,7 +440,7 @@ public class TitleScene : Scene
             sfxSlider.ValueChangeCompleted += HandleSfxSliderChangeCompleted;
             _optionsPanel.AddChild(sfxSlider);
 
-            var _optionsBackButton = new Button();
+            _optionsBackButton = new AnimatedButton(_atlas);
             _optionsBackButton.Text = "BACK";
             _optionsBackButton.Anchor(Gum.Wireframe.Anchor.BottomRight);
             _optionsBackButton.X = -28f;
@@ -527,28 +536,32 @@ public class TitleScene : Scene
         Core.SpriteBatch.Begin(samplerState: SamplerState.PointWrap);
         Core.SpriteBatch.Draw(_backgroundPattern, _backgroundDestination, new Rectangle(_backgroundOffset.ToPoint(), _backgroundDestination.Size), Color.White * 0.5f);
         Core.SpriteBatch.End();
-        
-        // Begin the sprite batch to prepare for rendering.
-        Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
-        
-        // 绘制title界面的slime
-        foreach (Slime slime in _titleSlimes)
-        {
-            slime.Draw(Core.SpriteBatch);
-        }
-        
-        // Draw the leaderboard title.
-        Core.SpriteBatch.DrawString(_font, "Top 3", _leaderboardTitlePos, Color.Yellow, 0.0f, _leaderboardTitleOrigin, 1.0f, SpriteEffects.None, 0.0f);
 
-        // Draw the leaderboard entries.
-        string leaderboardText = GenerateLeaderboardText();
-        Core.SpriteBatch.DrawString(_font, leaderboardText, _leaderboardEntriesPos, Color.Yellow, 0.0f, _leaderboardEntriesOrigin, 0.7f, SpriteEffects.None, 0.0f);
-
-        // Always end the sprite batch when finished.
-        Core.SpriteBatch.End();
-        
         if (_titleScreenButtonsPanel.IsVisible)
         {
+            // Begin the sprite batch to prepare for rendering.
+            Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
+            
+            // 绘制title界面的slime
+            foreach (Slime slime in _titleSlimes)
+            {
+                slime.Draw(Core.SpriteBatch);
+            }
+
+            // Draw the leaderboard title.
+            Core.SpriteBatch.DrawString(_font, "Top 3", _leaderboardTitlePos, Color.Yellow, 0.0f,
+                _leaderboardTitleOrigin, 1.0f, SpriteEffects.None, 0.0f);
+
+            // Draw the leaderboard entries.
+            string leaderboardText = GenerateLeaderboardText();
+            Core.SpriteBatch.DrawString(_font, leaderboardText, _leaderboardEntriesPos, Color.Yellow, 0.0f,
+                _leaderboardEntriesOrigin, 0.7f, SpriteEffects.None, 0.0f);
+
+            // Always end the sprite batch when finished.
+            Core.SpriteBatch.End();
+            
+            
+            
             // Begin the sprite batch to prepare for rendering.
             Core.SpriteBatch.Begin(samplerState: SamplerState.PointClamp);
 
@@ -571,6 +584,7 @@ public class TitleScene : Scene
 
             // Always end the sprite batch when finished.
             Core.SpriteBatch.End();
+            
         }
 
         GumService.Default.Draw();
