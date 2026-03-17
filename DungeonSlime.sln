@@ -1,6 +1,6 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "App1", "App1\App1.csproj", "{7F9BF22A-BECA-44E8-AB98-5201AEA4A7DD}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DungeonSLime", "DungeonSLime\DungeonSLime.csproj", "{7F9BF22A-BECA-44E8-AB98-5201AEA4A7DD}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MonoGameLibrary", "MonoGameLibrary\MonoGameLibrary.csproj", "{CA43C58C-792B-420B-BEDE-60BA59D356F0}"
 EndProject

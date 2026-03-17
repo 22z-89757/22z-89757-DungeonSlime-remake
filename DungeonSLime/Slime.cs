@@ -4,7 +4,7 @@ using MonoGameLibrary;
 using Microsoft.Xna.Framework;
 using MonoGameLibrary.Graphic;
 
-namespace App1;
+namespace DungeonSLime;
 
 public enum E_SlimeType
 {

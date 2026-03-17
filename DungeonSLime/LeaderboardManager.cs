@@ -4,7 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Text.Json;
 
-namespace App1
+namespace DungeonSLime
 {
     /// <summary>
     /// 排行榜管理器，负责排行榜数据的读取、写入、排序和插入

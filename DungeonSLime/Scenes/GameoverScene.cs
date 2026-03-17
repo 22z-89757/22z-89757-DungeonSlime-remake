@@ -8,7 +8,7 @@ using MonoGameLibrary.Graphic;
 using MonoGameLibrary.Input;
 using MonoGameLibrary.Scenes;
 
-namespace App1.Scenes;
+namespace DungeonSLime.Scenes;
 
 public class GameoverScene : Scene
 {
@@ -123,7 +123,7 @@ public class GameoverScene : Scene
     public override void Update(GameTime gameTime)
     {
         // 如果用户按下回车键，返回主菜单
-        if (Core.InputMgr.Keyboard.WasKeyJustPressed(Keys.Enter) || Core.InputMgr.GamePads[0].WasButtonJustPressed(Buttons.A))
+        if (Core.InputMgr.Keyboard.WasKeyJustReleased(Keys.Enter) || Core.InputMgr.GamePads[0].WasButtonJustReleased(Buttons.A))
         {
             Core.ChangeScene(new TitleScene());
         }

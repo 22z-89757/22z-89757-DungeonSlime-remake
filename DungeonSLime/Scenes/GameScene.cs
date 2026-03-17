@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using Gum.DataTypes;
+using Gum.Wireframe;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Audio;
 using Microsoft.Xna.Framework.Graphics;
@@ -8,19 +10,14 @@ using MonoGameLibrary;
 using MonoGameLibrary.Graphic;
 using MonoGameLibrary.Input;
 using MonoGameLibrary.Scenes;
-using Keyboard = Microsoft.Xna.Framework.Input.Keyboard;
+using MonoGameGum;
+using Gum.Forms.Controls;
+using MonoGameGum.GueDeriving;
 
-namespace App1.Scenes;
+namespace DungeonSLime.Scenes;
 
 public class GameScene : Scene
 {
-    // 游戏状态枚举
-    private enum E_GameState
-    {
-        Playing,
-        GameOver
-    }
-    
     // 蛇头
     private Slime _snakeHead;
     
@@ -39,10 +36,7 @@ public class GameScene : Scene
     
     // 身体节点之间的距离（以帧数计算）
     private const int BODY_DISTANCE_IN_FRAMES = 20;
-    
-    // 游戏状态
-    private E_GameState _gameState;
-    
+
     // 游戏开始时间
     private DateTime _gameStartTime;
     
@@ -79,6 +73,18 @@ public class GameScene : Scene
     private Vector2 _staminaTextPosition; // 体力值文字位置
     private Texture2D _pixelTexture; // 用于绘制矩形的1x1像素纹理
     
+    // A reference to the pause panel UI element so we can set its visibility
+    // when the game is paused.
+    private Panel _pausePanel;
+
+    // A reference to the resume button UI element so we can focus it
+    // when the game is paused.
+    private Button _resumeButton;
+
+    // The UI sound effect to play when a UI event is triggered.
+    private SoundEffect _uiSoundEffect;
+
+    
     
     
     
@@ -86,7 +92,6 @@ public class GameScene : Scene
     {
         _snakeBody = new List<Slime>();
         _bats = new List<Bat>();
-        _gameState = E_GameState.Playing;
         _gameStartTime = DateTime.Now;
     }
 
@@ -120,6 +125,9 @@ public class GameScene : Scene
             Core.GraphicsDevice.PresentationParameters.BackBufferWidth - 340, 
             45
         );
+        
+        // Initialize the Gum UI for the pause menu.
+        InitializeUI();
     }
 
     public override void LoadContent()
@@ -157,25 +165,21 @@ public class GameScene : Scene
         _pixelTexture = new Texture2D(Core.GraphicsDevice, 1, 1);
         _pixelTexture.SetData(new[] { Color.White });
         
+        // Load the sound effect to play when ui actions occur.
+        _uiSoundEffect = Core.Content.Load<SoundEffect>("audio/ui");
+        
         base.LoadContent();
     }
 
     public override void Update(GameTime gameTime)
     {
-        if (GamePad.GetState(PlayerIndex.One).Buttons.B == ButtonState.Pressed ||
-            Keyboard.GetState().IsKeyDown(Keys.Back))
-        {
-            Core.ChangeScene(new TitleScene());
-        }
+        
+        // Ensure the UI is always updated
+        GumService.Default.Update(gameTime);
 
-        // 如果游戏结束，只处理返回主菜单的输入
-        if (_gameState == E_GameState.GameOver)
+        // If the game is paused, do not continue
+        if (_pausePanel.IsVisible)
         {
-            if (Core.InputMgr.Keyboard.WasKeyJustPressed(Keys.Enter) || 
-                Core.InputMgr.GamePads[0].WasButtonJustPressed(Buttons.A))
-            {
-                Core.ChangeScene(new TitleScene());
-            }
             return;
         }
 
@@ -210,6 +214,16 @@ public class GameScene : Scene
         
         base.Update(gameTime);
     }
+    
+    private void PauseGame()
+    {
+        // Make the pause panel UI element visible.
+        _pausePanel.IsVisible = true;
+
+        // Set the resume button to have focus
+        _resumeButton.IsFocused = true;
+    }
+
     
     /// <summary>
     /// 处理输入，更新蛇头速度
@@ -249,10 +263,12 @@ public class GameScene : Scene
             hasInput = true;
         }
         
-        // If the M key is pressed, toggle mute state for audio.
+        // 暂停界面 并且 静音
         if (Core.InputMgr.Keyboard.WasKeyJustPressed(Keys.M))
         {
             Core.Audio.ToggleMute();
+            PauseGame();
+            return;
         }
 
         // If the + button is pressed, increase the volume.
@@ -318,6 +334,14 @@ public class GameScene : Scene
             }
         }
         
+        // 暂停界面 并且 静音
+        if (gamePadOne.WasButtonJustPressed(Buttons.Start))
+        {
+            Core.Audio.ToggleMute();
+            PauseGame();
+            return;
+        }
+        
         // 更新方向和速度
         if (hasInput && direction != Vector2.Zero)
         {
@@ -332,6 +356,79 @@ public class GameScene : Scene
         // 设置冲刺状态
         _snakeHead.SetSprinting(isSprinting);
     }
+
+    #region 暂停界面UI处理
+
+    private void CreatePausePanel()
+    {
+        _pausePanel = new Panel();
+        _pausePanel.Anchor(Anchor.Center);
+        _pausePanel.WidthUnits = DimensionUnitType.Absolute;
+        _pausePanel.HeightUnits = DimensionUnitType.Absolute;
+        _pausePanel.Height = 70;
+        _pausePanel.Width = 264;
+        _pausePanel.IsVisible = false;
+        _pausePanel.AddToRoot();
+
+        var background = new ColoredRectangleRuntime();
+        background.Dock(Dock.Fill);
+        background.Color = Color.DarkBlue;
+        _pausePanel.AddChild(background);
+
+        var textInstance = new TextRuntime();
+        textInstance.Text = "PAUSED";
+        textInstance.X = 10f;
+        textInstance.Y = 10f;
+        _pausePanel.AddChild(textInstance);
+
+        _resumeButton = new Button();
+        _resumeButton.Text = "RESUME";
+        _resumeButton.Anchor(Anchor.BottomLeft);
+        _resumeButton.X = 9f;
+        _resumeButton.Y = -9f;
+        _resumeButton.Width = 80;
+        _resumeButton.Click += HandleResumeButtonClicked;
+        _pausePanel.AddChild(_resumeButton);
+
+        var quitButton = new Button();
+        quitButton.Text = "QUIT";
+        quitButton.Anchor(Anchor.BottomRight);
+        quitButton.X = -9f;
+        quitButton.Y = -9f;
+        quitButton.Width = 80;
+        quitButton.Click += HandleQuitButtonClicked;
+
+        _pausePanel.AddChild(quitButton);
+    }
+
+    private void HandleResumeButtonClicked(object sender, EventArgs e)
+    {
+        // A UI interaction occurred, play the sound effect
+        Core.Audio.PlaySoundEffect(_uiSoundEffect);
+
+        // Make the pause panel invisible to resume the game.
+        _pausePanel.IsVisible = false;
+    }
+
+    private void HandleQuitButtonClicked(object sender, EventArgs e)
+    {
+        Core.Audio.ToggleMute();
+        
+        // A UI interaction occurred, play the sound effect
+        Core.Audio.PlaySoundEffect(_uiSoundEffect);
+
+        // Go back to the title scene.
+        Core.ChangeScene(new TitleScene());
+    }
+
+    private void InitializeUI()
+    {
+        GumService.Default.Root.Children.Clear();
+
+        CreatePausePanel();
+    }
+    
+    #endregion
     
     /// <summary>
     /// 更新蛇身体节点位置（历史路径回溯法）
@@ -597,9 +694,6 @@ public class GameScene : Scene
     /// </summary>
     private void GameOver()
     {
-        _gameState = E_GameState.GameOver;
-        
-        
         // 计算存活时间
         TimeSpan survivalTime = DateTime.Now - _gameStartTime;
         
@@ -660,6 +754,9 @@ public class GameScene : Scene
         DrawStaminaBar();
         
         Core.SpriteBatch.End();
+        
+        // Draw the Gum UI
+        GumService.Default.Draw();
         
         base.Draw(gameTime);
     }

@@ -1,6 +1,6 @@
 using System;
 
-namespace App1
+namespace DungeonSLime
 {
     /// <summary>
     /// 分数记录类，用于存储排行榜数据

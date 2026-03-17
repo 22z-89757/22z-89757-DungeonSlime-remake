@@ -1,7 +1,7 @@
 using MonoGameLibrary.Graphic;
 using Microsoft.Xna.Framework;
 
-namespace App1;
+namespace DungeonSLime;
 
 public class Bat
 { 
