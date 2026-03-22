@@ -7,15 +7,7 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="23144769-f1c6-4310-adf2-470f17aac570" name="更改" comment="">
-      <change afterPath="$PROJECT_DIR$/DungeonSLime/UI/OptionSlider.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.App1/.idea/.gitignore" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/.idea.App1/.idea/indexLayout.xml" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/App1.sln.DotSettings.user" beforeDir="false" afterPath="$PROJECT_DIR$/App1.sln.DotSettings.user" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/App1/.vscode/launch.json" beforeDir="false" afterPath="$PROJECT_DIR$/DungeonSLime/.vscode/launch.json" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DungeonSLime/Scenes/GameScene.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DungeonSLime/Scenes/GameScene.cs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/DungeonSLime/Scenes/TitleScene.cs" beforeDir="false" afterPath="$PROJECT_DIR$/DungeonSLime/Scenes/TitleScene.cs" afterDir="false" />
-    </list>
+    <list default="true" id="23144769-f1c6-4310-adf2-470f17aac570" name="更改" comment="" />
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
@@ -179,7 +171,7 @@
       <workItem from="1773667118921" duration="8869000" />
       <workItem from="1773716724335" duration="1871000" />
       <workItem from="1773720414990" duration="12416000" />
-      <workItem from="1773736416420" duration="6084000" />
+      <workItem from="1773736416420" duration="6908000" />
     </task>
     <task id="LOCAL-00001" summary="1">
       <option name="closed" value="true" />
@@ -237,7 +229,15 @@
       <option name="project" value="LOCAL" />
       <updated>1773760040450</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="v1.3 正式版">
+      <option name="closed" value="true" />
+      <created>1773763013687</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1773763013687</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -277,7 +277,8 @@
     <MESSAGE value="v1.0正式版" />
     <MESSAGE value="v1.2&#10;新增体力条，体力耗尽时有疲劳效果，要恢复到20%才能重新冲刺" />
     <MESSAGE value="v1.2.2" />
-    <option name="LAST_COMMIT_MESSAGE" value="v1.2.2" />
+    <MESSAGE value="v1.3 正式版" />
+    <option name="LAST_COMMIT_MESSAGE" value="v1.3 正式版" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
