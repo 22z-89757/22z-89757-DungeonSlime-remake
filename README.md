@@ -90,6 +90,8 @@ DungeonSlime/
 
 ### 安装步骤
 
+- 直接解压releases中的压缩文档并运行其中exe文件
+
 1. **克隆仓库**
 ```bash
 git clone https://github.com/你的用户名/DungeonSlime.git
