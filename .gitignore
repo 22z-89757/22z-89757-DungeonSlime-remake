@@ -1,5 +1,29 @@
+# Build results
 bin/
 obj/
 /packages/
+
+# IDE files
 riderModule.iml
 /_ReSharper.Caches/
+.idea/
+.vs/
+
+# User-specific files
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# MonoGame content pipeline
+Content/bin/
+Content/obj/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
