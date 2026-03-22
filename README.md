@@ -114,41 +114,20 @@ dotnet publish DungeonSLime -c Release -r win-x64 --self-contained
 
 ## 📸 游戏截图
 
-> 💡 建议添加游戏截图到此处
-
-## 📋 版本历史
-
-| 版本 | 更新内容 |
-|------|----------|
-| v1.3 | 正式版发布 |
-| v1.2.2 | Bug修复和优化 |
-| v1.2.1 | 小改动 |
-| v1.2 | 新增体力条系统，体力耗尽时有疲劳效果 |
-| v1.1 | 创建排行榜功能 |
-
-## 🤝 贡献
-
-欢迎提交Issue和Pull Request！
-
-1. Fork 本仓库
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 开启 Pull Request
+![img.png](img.png)
+![img1.png](img1.png)
+![img_1.png](img_1.png)
+![img_2.png](img_2.png)
+![img_3.png](img_3.png)
 
 ## 📄 许可证
 
 本项目采用 MIT 许可证 - 查看 [LICENSE](LICENSE) 文件了解详情
 
-## 👨‍💻 作者
-
-- **作者名称** - [GitHub主页](https://github.com/你的用户名)
-
 ## 🙏 致谢
 
 - [MonoGame](https://monogame.net/) - 优秀的跨平台游戏框架
 - [Gum](https://github.com/vchelaru/Gum) - 灵活的UI框架
-- 所有为本项目提供帮助的朋友
 
 ---
 
